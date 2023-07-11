@@ -1,0 +1,89 @@
+FROM ubuntu:20.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install prerequisites
+RUN apt-get update
+RUN apt-get install -y curl sudo git apt-transport-https ca-certificates gnupg-agent software-properties-common lsb-release tzdata
+
+# Set timezone
+RUN ln -fs /usr/share/zoneinfo/Europe/Istanbul /etc/localtime
+RUN dpkg-reconfigure -f noninteractive tzdata
+
+# Install Docker CLI
+RUN apt-get clean
+RUN apt-get update
+RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+RUN add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+RUN apt-get update
+RUN apt-get install -y docker-ce docker-ce-cli containerd.io || apt-get -yf install
+
+# Install Azure Pipelines Agent
+WORKDIR /azp
+COPY ./start.sh .
+RUN chmod +x start.sh
+RUN curl -LsS https://vstsagentpackage.azureedge.net/agent/2.186.1/vsts-agent-linux-x64-2.186.1.tar.gz -o agent.tar.gz
+RUN tar -zxvf agent.tar.gz
+RUN rm -rf agent.tar.gz
+
+CMD [ "./start.sh" ]
+
+---------------------------------------------------------------------------------
+
+# Install Azure Pipelines Agent
+ARG TARGETARCH=amd64
+ARG AGENT_VERSION=3.220.5
+
+RUN curl -Ls https://vstsagentpackage.azureedge.net/agent/${AGENT_VERSION}/vsts-agent-linux-${TARGETARCH}-${AGENT_VERSION}.tar.gz | tar -xz
+RUN ./bin/installdependencies.sh
+
+----------------------------------------------------------------------------------
+
+Bu aşağıdaki Dockerfile çalışıyor.
+
+# Use Ubuntu 20.04 as base image
+FROM ubuntu:20.04
+
+# Update packages
+RUN apt-get update
+RUN ln -fs /usr/share/zoneinfo/Europe/Istanbul /etc/localtime
+# Install prerequisites
+RUN apt-get install -y ca-certificates
+RUN apt-get install -y curl
+RUN apt-get install -y jq
+RUN apt-get install -y git
+RUN apt-get install -y iputils-ping
+RUN apt-get install -y libcurl4
+RUN apt-get install -y libicu66
+RUN apt-get install -y libssl1.0
+RUN apt-get install -y libunwind8
+RUN apt-get install -y netcat
+RUN apt-get install -y software-properties-common
+RUN apt-get install -y lsb-release
+RUN apt-get install -y tzdata
+RUN apt-get install -y sudo
+RUN apt-get install -y apt-transport-https
+RUN apt-get install -y gnupg-agent
+
+# Set timezone
+RUN dpkg-reconfigure -f noninteractive tzdata
+
+# Install Docker
+RUN apt-get clean
+RUN apt-get update
+RUN curl -fsSL https://get.docker.com -o get-docker.sh
+RUN sh get-docker.sh
+
+# Install Azure Pipelines Agent
+WORKDIR /azp
+COPY ./start.sh .
+RUN chmod +x start.sh
+RUN curl -LsS https://vstsagentpackage.azureedge.net/agent/3.220.5/vsts-agent-linux-arm64-3.220.5.tar.gz -o agent.tar.gz
+RUN tar -zxvf agent.tar.gz
+RUN rm -rf agent.tar.gz
+
+# Copy start.sh and make it executable
+COPY start.sh .
+RUN chmod +x start.sh
+
+CMD ["./start.sh"]
